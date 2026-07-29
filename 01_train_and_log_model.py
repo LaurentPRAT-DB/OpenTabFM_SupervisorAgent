@@ -155,6 +155,7 @@ with mlflow.start_run(run_name="tabfm_v1_hf_foundation_model") as run:
     model_info = mlflow.sklearn.log_model(
         sk_model=regressor,
         artifact_path="model",
+        serialization_format="cloudpickle",
         pip_requirements=["tabfm[pytorch]", "safetensors", "scikit-learn", "pandas", "numpy"],
         signature=signature,
         input_example=input_example,
