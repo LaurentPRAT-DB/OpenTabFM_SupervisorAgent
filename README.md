@@ -44,42 +44,42 @@ On the [TabArena benchmark](https://github.com/autogluon/tabrepo) (51 datasets),
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    USER INTERACTION                           │
+│                    USER INTERACTION                         │
 │  "What's a house worth with $83k income, 41yo homes?"       │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              SUPERVISOR AGENT (Claude Sonnet 4)               │
-│  Parses intent, selects tool, formats parameters             │
+│              SUPERVISOR AGENT (Claude Sonnet 4)             │
+│  Parses intent, selects tool, formats parameters            │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          UC FUNCTION: forecast_with_tabfm()                  │
-│  Governed, discoverable, SQL-callable interface              │
-│  Permissions: catalog.schema.forecast_with_tabfm             │
+│          UC FUNCTION: forecast_with_tabfm()                 │
+│  Governed, discoverable, SQL-callable interface             │
+│  Permissions: catalog.schema.forecast_with_tabfm            │
 └─────────────────────┬───────────────────────────────────────┘
                       │ ai_query()
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│           MODEL SERVING ENDPOINT                             │
-│  tabfm-forecast-endpoint                                     │
-│  Serverless • Auto-scaling • Scale-to-zero                   │
+│           MODEL SERVING ENDPOINT                            │
+│  tabfm-forecast-endpoint                                    │
+│  Serverless • Auto-scaling • Scale-to-zero                  │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          MLFLOW PYFUNC (TabFMForecastModel)                  │
-│  Loads TabFM weights from HuggingFace (cached)               │
-│  Restores in-context examples • Runs inference               │
+│          MLFLOW PYFUNC (TabFMForecastModel)                 │
+│  Loads TabFM weights from HuggingFace (cached)              │
+│  Restores in-context examples • Runs inference              │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          GOOGLE TabFM v1.0.0 (PyTorch)                       │
-│  24-block causal ICL transformer                             │
-│  Weights: google/tabfm-1.0.0-pytorch (HuggingFace Hub)       │
+│          GOOGLE TabFM v1.0.0 (PyTorch)                      │
+│  24-block causal ICL transformer                            │
+│  Weights: google/tabfm-1.0.0-pytorch (HuggingFace Hub)      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
