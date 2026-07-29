@@ -22,9 +22,9 @@
 
 CATALOG = "serverless_stable_3n0ihb_catalog"
 SCHEMA = "hf_tabularpredict"
-MODEL_NAME = f"{CATALOG}.{SCHEMA}.tabpfn_forecast"
-ENDPOINT_NAME = "tabpfn-forecast-endpoint"
-UC_FUNCTION = f"{CATALOG}.{SCHEMA}.forecast_with_tabpfn"
+MODEL_NAME = f"{CATALOG}.{SCHEMA}.tabfm_forecast"
+ENDPOINT_NAME = "tabfm-forecast-endpoint"
+UC_FUNCTION = f"{CATALOG}.{SCHEMA}.forecast_with_tabfm"
 
 # COMMAND ----------
 
