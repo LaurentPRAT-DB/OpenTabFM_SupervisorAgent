@@ -71,8 +71,8 @@ On the [TabArena benchmark](https://github.com/autogluon/tabrepo) (51 datasets),
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │          MLFLOW SKLEARN (TabFMRegressor)                    │
-│  Serialized via sklearn flavor (fit/predict interface)       │
-│  Context examples baked in • Runs inference                  │
+│  Serialized via sklearn flavor (fit/predict interface)      │
+│  Context examples baked in • Runs inference                 │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
