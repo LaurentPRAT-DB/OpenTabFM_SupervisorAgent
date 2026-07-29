@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "resources": [
+    {
+      "type": "schema",
+      "name": "serverless_stable_3n0ihb_catalog.hf_tabularpredict",
+      "id": "serverless_stable_3n0ihb_catalog.hf_tabularpredict",
+      "created_at": "2026-07-29T12:24:38.870471+00:00",
+      "updated_at": "2026-07-29T12:24:38.870471+00:00"
+    },
+    {
+      "type": "job",
+      "name": "tabpfn-hf-model-register",
+      "id": "675112343561040",
+      "created_at": "2026-07-29T12:56:39.394091+00:00",
+      "updated_at": "2026-07-29T12:56:39.394091+00:00"
+    }
+  ]
+}

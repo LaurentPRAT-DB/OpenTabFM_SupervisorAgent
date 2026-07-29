@@ -1,0 +1,53 @@
+bundle:
+  name: hf_tabularpredict
+
+workspace:
+  profile: FEVM_SERVERLESS_STABLE
+  root_path: /Workspace/Users/laurent.prat@databricks.com/.bundle/${bundle.name}/${bundle.target}
+
+targets:
+  dev:
+    default: true
+
+resources:
+  jobs:
+    hf_tabularpredict_pipeline:
+      name: "hf_tabularpredict_pipeline"
+      tasks:
+        - task_key: "01_train_and_log_model"
+          notebook_task:
+            notebook_path: ./01_train_and_log_model.py
+          environment_key: "default"
+
+        - task_key: "02_deploy_serving_endpoint"
+          depends_on:
+            - task_key: "01_train_and_log_model"
+          notebook_task:
+            notebook_path: ./02_deploy_serving_endpoint.py
+          environment_key: "default"
+
+        - task_key: "03_create_uc_function"
+          depends_on:
+            - task_key: "02_deploy_serving_endpoint"
+          notebook_task:
+            notebook_path: ./03_create_uc_function.py
+          environment_key: "default"
+
+        - task_key: "04_agent_integration"
+          depends_on:
+            - task_key: "03_create_uc_function"
+          notebook_task:
+            notebook_path: ./04_agent_integration.py
+          environment_key: "default"
+
+        - task_key: "05_test_end_to_end"
+          depends_on:
+            - task_key: "04_agent_integration"
+          notebook_task:
+            notebook_path: ./05_test_end_to_end.py
+          environment_key: "default"
+
+      environments:
+        - environment_key: "default"
+          spec:
+            client: "1"
