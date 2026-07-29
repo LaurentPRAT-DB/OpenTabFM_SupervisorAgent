@@ -59,7 +59,7 @@ from tabfm import tabfm_v1_0_0_pytorch as tabfm_v1_0_0
 
 # Downloads pretrained weights from HuggingFace Hub (google/tabfm-1.0.0-pytorch)
 model = tabfm_v1_0_0.load(model_type="regression")
-regressor = TabFMRegressor(model=model)
+regressor = TabFMRegressor(model=model, n_estimators=2)
 
 print("TabFM loaded from HuggingFace (google/tabfm-1.0.0-pytorch)")
 print("Architecture: 24-block causal ICL transformer")
@@ -88,7 +88,7 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 
 # TabFM uses in-context learning — defaults to 100 context rows per estimator
-MAX_CONTEXT_SAMPLES = 500
+MAX_CONTEXT_SAMPLES = 100
 rng = np.random.RandomState(42)
 idx = rng.choice(len(X_train), MAX_CONTEXT_SAMPLES, replace=False)
 X_context = X_train.iloc[idx]
@@ -117,41 +117,22 @@ print("Context provided to TabFM (zero-shot — no weight updates)")
 
 # COMMAND ----------
 
-y_pred = regressor.predict(X_test)
-rmse = mean_squared_error(y_test, y_pred, squared=False)
-r2 = r2_score(y_test, y_pred)
+X_eval = X_test.head(100)
+y_eval = y_test.head(100)
+y_pred = regressor.predict(X_eval)
+rmse = mean_squared_error(y_eval, y_pred, squared=False)
+r2 = r2_score(y_eval, y_pred)
 print(f"Test RMSE: {rmse:.4f}")
 print(f"Test R²: {r2:.4f}")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Package as MLflow pyfunc and register in Unity Catalog
+# MAGIC ## Register in Unity Catalog via MLflow sklearn flavor
 # MAGIC
-# MAGIC We wrap TabFM in a custom pyfunc to control serialization and
-# MAGIC ensure model serving can reconstruct the model.
-
-# COMMAND ----------
-
-import pickle
-import os
-from mlflow.pyfunc import PythonModel
-
-class TabFMForecastModel(PythonModel):
-    def load_context(self, context):
-        with open(context.artifacts["fitted_model"], "rb") as f:
-            self.model = pickle.load(f)
-        self.feature_cols = ["MedInc", "HouseAge", "AveRooms", "AveOccup"]
-
-    def predict(self, context, model_input, params=None):
-        df = pd.DataFrame(model_input)
-        predictions = self.model.predict(df[self.feature_cols])
-        return pd.DataFrame({"forecast": predictions})
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Save fitted model and log to MLflow
+# MAGIC TabFM implements the sklearn estimator interface (fit/predict),
+# MAGIC so we use `mlflow.sklearn.log_model` — MLflow handles serialization
+# MAGIC natively. No custom wrapper class needed.
 
 # COMMAND ----------
 
@@ -159,13 +140,8 @@ from mlflow.models.signature import infer_signature
 
 mlflow.set_registry_uri("databricks-uc")
 
-# Serialize fitted regressor (holds context data + model reference)
-model_path = "/tmp/tabfm_fitted.pkl"
-with open(model_path, "wb") as f:
-    pickle.dump(regressor, f)
-
-input_example = X_test.head(3)
-signature = infer_signature(input_example, pd.DataFrame({"forecast": y_pred[:3]}))
+input_example = X_eval.head(3)
+signature = infer_signature(input_example, y_pred[:3])
 
 with mlflow.start_run(run_name="tabfm_v1_hf_foundation_model") as run:
     mlflow.log_metric("rmse", rmse)
@@ -176,11 +152,10 @@ with mlflow.start_run(run_name="tabfm_v1_hf_foundation_model") as run:
     mlflow.log_param("n_features", len(feature_cols))
     mlflow.log_param("architecture", "24-block causal ICL transformer")
 
-    model_info = mlflow.pyfunc.log_model(
+    model_info = mlflow.sklearn.log_model(
+        sk_model=regressor,
         artifact_path="model",
-        python_model=TabFMForecastModel(),
-        artifacts={"fitted_model": model_path},
-        pip_requirements=["mlflow", "pandas", "scikit-learn", "tabfm[pytorch]", "safetensors"],
+        pip_requirements=["tabfm[pytorch]", "safetensors", "scikit-learn", "pandas", "numpy"],
         signature=signature,
         input_example=input_example,
         registered_model_name=MODEL_NAME,
@@ -197,6 +172,6 @@ print(f"Model URI: {model_info.model_uri}")
 # COMMAND ----------
 
 loaded_model = mlflow.pyfunc.load_model(model_info.model_uri)
-result = loaded_model.predict(X_test.head(5))
+result = loaded_model.predict(X_eval.head(5))
 print("Predictions from registered model:")
 print(result)

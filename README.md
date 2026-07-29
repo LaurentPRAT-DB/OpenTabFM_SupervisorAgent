@@ -91,13 +91,17 @@ Unity Catalog (UC) is the governance layer that transforms a raw HuggingFace mod
 
 ### Model Registry in UC
 
+TabFM implements the sklearn estimator interface (fit/predict), so we use the native sklearn MLflow flavor — no custom wrapper needed:
+
 ```python
 mlflow.set_registry_uri("databricks-uc")
 
-mlflow.pyfunc.log_model(
+mlflow.sklearn.log_model(
+    sk_model=regressor,
     artifact_path="model",
-    python_model=TabFMForecastModel(),
-    artifacts={"fitted_model": model_path},
+    pip_requirements=["tabfm[pytorch]", "safetensors", "scikit-learn", "pandas", "numpy"],
+    signature=signature,
+    input_example=input_example,
     registered_model_name="catalog.schema.tabfm_forecast",
 )
 ```
@@ -283,6 +287,31 @@ environments:
 4. **The UC Function → Agent pattern** makes any ML model accessible via natural language, governed by the same permission model as your data.
 
 5. **Serverless serving + scale-to-zero** keeps costs near zero for experimental/low-traffic use cases while supporting production auto-scaling.
+
+---
+
+## License & Commercial Use
+
+**Code**: Apache 2.0 — use freely, modify, distribute.
+
+**Pretrained weights** (`google/tabfm-1.0.0-pytorch`): `tabfm-non-commercial-v1.0` — **commercial and production use is not permitted** with the default weights.
+
+| Use Case | Allowed? |
+|----------|----------|
+| Internal research / evaluation | Yes |
+| Academic / educational | Yes |
+| Proof-of-concept / demo | Yes |
+| Production predictions (any industry) | **No** |
+| Internal trading models | **No** |
+| Customer-facing products | **No** |
+
+### Path to Commercial Use
+
+1. **Train your own weights** — the architecture (Apache 2.0 code) is fully open. Use Google's synthetic data generation pipeline (Structural Causal Models) to produce your own checkpoint. Your weights = your license.
+2. **Contact Google** — licensing terms may evolve. Non-commercial first, then relaxed licensing is a common release pattern.
+3. **Use an alternative model** — e.g., TabPFN (PriorLabs offers commercial API tiers), or train a custom transformer on proprietary data using the open TabFM architecture.
+
+> **Bottom line**: This repo demonstrates the Databricks integration pattern (HuggingFace → UC → Serving → Agent). For production/commercial deployment, swap in commercially-licensed weights or a differently-licensed model using the same pipeline.
 
 ---
 
