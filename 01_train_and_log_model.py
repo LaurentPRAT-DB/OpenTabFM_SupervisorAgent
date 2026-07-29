@@ -25,7 +25,7 @@ import pandas as pd
 import numpy as np
 from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.metrics import root_mean_squared_error, r2_score
 
 # COMMAND ----------
 
@@ -120,7 +120,7 @@ print("Context provided to TabFM (zero-shot — no weight updates)")
 X_eval = X_test.head(100)
 y_eval = y_test.head(100)
 y_pred = regressor.predict(X_eval)
-rmse = mean_squared_error(y_eval, y_pred, squared=False)
+rmse = root_mean_squared_error(y_eval, y_pred)
 r2 = r2_score(y_eval, y_pred)
 print(f"Test RMSE: {rmse:.4f}")
 print(f"Test R²: {r2:.4f}")
