@@ -70,9 +70,9 @@ On the [TabArena benchmark](https://github.com/autogluon/tabrepo) (51 datasets),
                       │
                       ▼
 ┌─────────────────────────────────────────────────────────────┐
-│          MLFLOW PYFUNC (TabFMForecastModel)                 │
-│  Loads TabFM weights from HuggingFace (cached)              │
-│  Restores in-context examples • Runs inference              │
+│          MLFLOW SKLEARN (TabFMRegressor)                    │
+│  Serialized via sklearn flavor (fit/predict interface)       │
+│  Context examples baked in • Runs inference                  │
 └─────────────────────┬───────────────────────────────────────┘
                       │
                       ▼
@@ -138,7 +138,7 @@ RETURN ai_query('tabfm-forecast-endpoint', named_struct(...))
 
 ```
 HuggingFace (open source)
-    → MLflow pyfunc (packaging + reproducibility)
+    → MLflow sklearn flavor (packaging + reproducibility)
         → UC Model Registry (versioning + ACL)
             → Model Serving (infra + scaling)
                 → UC Function (typed API + audit)
@@ -242,30 +242,68 @@ TabFM's zero-shot nature means you skip the training compute entirely — no GPU
 
 ---
 
-## Running This Demo
+## Installation & Setup
 
 ### Prerequisites
 
-- Databricks workspace with Unity Catalog
-- Serverless environment v4+ (Python 3.12)
+- Databricks workspace with Unity Catalog enabled
+- [Databricks CLI](https://docs.databricks.com/dev-tools/cli/index.html) installed and configured
 - `CREATE FUNCTION` privilege on target schema
 - Model Serving access
 
-### Quick Start
+### Step 1: Clone the repo
 
-1. Run `01_train_and_log_model.py` as a Databricks job (serverless, environment client: "4")
-2. Run `02_deploy_serving_endpoint.py` — wait for endpoint to become READY
-3. Run `03_create_uc_function.py` — creates the SQL-callable interface
-4. Run `04_agent_integration.py` — test the full agent loop
+```bash
+git clone https://github.com/LaurentPRAT-DB/OpenTabFM_SupervisorAgent.git
+cd OpenTabFM_SupervisorAgent
+```
+
+### Step 2: Configure the Databricks CLI profile
+
+Make sure you have a Databricks CLI profile pointing to your workspace:
+
+```bash
+databricks auth login --host https://<your-workspace>.cloud.databricks.com
+```
+
+Then update `databricks.yml` → set `workspace.profile` to your profile name.
+
+### Step 3: Deploy with Databricks Asset Bundles (DABs)
+
+```bash
+databricks bundle validate
+databricks bundle deploy
+```
+
+This uploads all notebooks and creates the job with the correct serverless environment (Python 3.12 + all dependencies).
+
+### Step 4: Run the pipeline
+
+```bash
+databricks bundle run hf_tabularpredict_pipeline
+```
+
+The job runs 5 tasks sequentially:
+
+1. **01_train_and_log_model** — Downloads TabFM from HuggingFace, provides context examples, evaluates, registers model in Unity Catalog
+2. **02_deploy_serving_endpoint** — Creates a serverless Model Serving endpoint with auto-scaling
+3. **03_create_uc_function** — Wraps the endpoint as a governed UC function via `ai_query()`
+4. **04_agent_integration** — Attaches the UC function to a Supervisor Agent
+5. **05_test_end_to_end** — Validates the full pipeline end-to-end
+
+### Alternative: Run notebooks individually
+
+You can also run each notebook one by one from the Databricks workspace UI. Upload the `.py` files to your workspace and run them as notebooks (they use Databricks notebook format with `# COMMAND ----------` separators).
 
 ### Environment Configuration
 
+The `databricks.yml` bundle config specifies the serverless environment:
+
 ```yaml
-# Job environment spec (in databricks.yml or job definition)
 environments:
-  - environment_key: default
+  - environment_key: "default"
     spec:
-      client: "4"  # Python 3.12
+      client: "4"  # Python 3.12 (required for TabFM)
       dependencies:
         - tabfm[pytorch]
         - mlflow
@@ -274,11 +312,13 @@ environments:
         - safetensors
 ```
 
+No local Python environment needed — all dependencies are resolved on Databricks serverless compute.
+
 ---
 
 ## Key Takeaways
 
-1. **Open weight models from HuggingFace integrate natively** with Databricks through MLflow pyfunc — no custom infrastructure needed.
+1. **Open weight models from HuggingFace integrate natively** with Databricks through MLflow — no custom infrastructure needed.
 
 2. **Unity Catalog provides full governance** at every layer: model versioning, endpoint access control, function permissions, and audit logging.
 
