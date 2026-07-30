@@ -44,7 +44,11 @@ print(f"Latest version: {latest_version.version}")
 
 # COMMAND ----------
 
+import time
+from datetime import timedelta
+
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound, ResourceConflict
 from databricks.sdk.service.serving import (
     EndpointCoreConfigInput,
     ServedEntityInput,
@@ -61,52 +65,60 @@ served_entities = [
     )
 ]
 
-from databricks.sdk.errors import NotFound, ResourceAlreadyExists
+
+def wait_for_endpoint_ready(name, timeout_minutes=30):
+    """Poll until endpoint has no pending config update."""
+    deadline = time.time() + timeout_minutes * 60
+    while time.time() < deadline:
+        ep = w.serving_endpoints.get(name)
+        config_update = getattr(ep, "config_update", None)
+        if config_update is None or config_update == "NOT_UPDATING":
+            return ep
+        print(f"  Endpoint updating... (config_update={config_update})")
+        time.sleep(30)
+    raise TimeoutError(f"Endpoint '{name}' did not finish updating within {timeout_minutes} min")
+
 
 try:
     endpoint = w.serving_endpoints.get(ENDPOINT_NAME)
-    print(f"Endpoint '{ENDPOINT_NAME}' exists. Updating...")
-    w.serving_endpoints.update_config_and_wait(
-        name=ENDPOINT_NAME,
-        served_entities=served_entities,
-    )
-    print("Endpoint updated successfully.")
+    current_entity = endpoint.config.served_entities[0] if endpoint.config.served_entities else None
+    pending = getattr(endpoint, "pending_config", None)
+
+    if current_entity and current_entity.entity_version == latest_version.version:
+        print(f"Endpoint '{ENDPOINT_NAME}' already serving v{latest_version.version}. Skipping.")
+    elif pending:
+        print(f"Endpoint '{ENDPOINT_NAME}' has pending update. Waiting for it to complete...")
+        wait_for_endpoint_ready(ENDPOINT_NAME)
+        print("Pending update completed.")
+    else:
+        print(f"Endpoint '{ENDPOINT_NAME}' exists. Updating to v{latest_version.version}...")
+        try:
+            w.serving_endpoints.update_config_and_wait(
+                name=ENDPOINT_NAME,
+                served_entities=served_entities,
+                timeout=timedelta(minutes=30),
+            )
+        except ResourceConflict:
+            print("Update already in progress. Waiting for completion...")
+            wait_for_endpoint_ready(ENDPOINT_NAME)
+        print("Endpoint updated successfully.")
 except NotFound:
     print(f"Creating endpoint '{ENDPOINT_NAME}'...")
     w.serving_endpoints.create_and_wait(
         name=ENDPOINT_NAME,
         config=EndpointCoreConfigInput(served_entities=served_entities),
+        timeout=timedelta(minutes=30),
     )
     print("Endpoint created successfully.")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Test the endpoint
+# MAGIC ## Verify endpoint is ready
 
 # COMMAND ----------
 
-import time
-
-time.sleep(5)
-
-response = w.serving_endpoints.query(
-    name=ENDPOINT_NAME,
-    dataframe_records=[
-        {
-            "MedInc": 8.3252,
-            "HouseAge": 41.0,
-            "AveRooms": 6.984,
-            "AveOccup": 2.556,
-        },
-        {
-            "MedInc": 3.5,
-            "HouseAge": 20.0,
-            "AveRooms": 5.0,
-            "AveOccup": 3.0,
-        },
-    ],
-)
-
-print("Endpoint response:")
-print(response.predictions)
+endpoint = w.serving_endpoints.get(ENDPOINT_NAME)
+print(f"Endpoint state: {endpoint.state.ready.value}")
+assert endpoint.state.ready.value == "READY", f"Endpoint not ready: {endpoint.state}"
+print("Endpoint is READY — deployment successful.")

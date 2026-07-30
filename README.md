@@ -123,7 +123,15 @@ CREATE OR REPLACE FUNCTION catalog.schema.forecast_with_tabfm(
 )
 RETURNS STRING
 COMMENT 'Predicts median house value using Google TabFM zero-shot model.'
-RETURN ai_query('tabfm-forecast-endpoint', named_struct(...))
+RETURN ai_query(
+  'tabfm-forecast-endpoint',
+  named_struct(
+    'MedInc', MedInc,
+    'HouseAge', HouseAge,
+    'AveRooms', AveRooms,
+    'AveOccup', AveOccup
+  )
+);
 ```
 
 **What this gives you:**
