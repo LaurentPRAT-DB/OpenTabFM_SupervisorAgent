@@ -61,6 +61,8 @@ served_entities = [
     )
 ]
 
+from databricks.sdk.errors import NotFound, ResourceAlreadyExists
+
 try:
     endpoint = w.serving_endpoints.get(ENDPOINT_NAME)
     print(f"Endpoint '{ENDPOINT_NAME}' exists. Updating...")
@@ -69,7 +71,7 @@ try:
         served_entities=served_entities,
     )
     print("Endpoint updated successfully.")
-except Exception:
+except NotFound:
     print(f"Creating endpoint '{ENDPOINT_NAME}'...")
     w.serving_endpoints.create_and_wait(
         name=ENDPOINT_NAME,
