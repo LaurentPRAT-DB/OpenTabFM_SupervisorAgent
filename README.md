@@ -312,7 +312,7 @@ The `databricks.yml` bundle config specifies the serverless environment:
 environments:
   - environment_key: "default"
     spec:
-      client: "4"  # Python 3.12 (required for TabFM)
+      client: "5"  # Python 3.12+ (required for TabFM)
       dependencies:
         - tabfm[pytorch]
         - mlflow

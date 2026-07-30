@@ -50,7 +50,7 @@ resources:
       environments:
         - environment_key: "default"
           spec:
-            client: "4"
+            client: "5"
             dependencies:
               - tabfm[pytorch]
               - mlflow
