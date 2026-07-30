@@ -247,6 +247,7 @@ TabFM's zero-shot nature means you skip the training compute entirely — no GPU
 | `02_deploy_serving_endpoint.py` | Create Model Serving endpoint with auto-scaling |
 | `03_create_uc_function.py` | Wrap endpoint as governed UC function via `ai_query()` |
 | `04_agent_integration.py` | Attach UC function to Supervisor Agent |
+| `05_test_end_to_end.py` | Validate full pipeline: model, endpoint, UC function, predictions |
 
 ---
 
